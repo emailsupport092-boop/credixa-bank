@@ -1,26 +1,130 @@
 @import "tailwindcss";
 
+/* Register class-based dark mode variant */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Light theme tokens ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-base: #f4f6f9;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f8fafc;
+  --border-color: #e5e7eb;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #f1f5f9;
+  --sidebar-hover: #f8fafc;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --sidebar-w: 240px;
+}
+
+/* ── Dark theme tokens ── */
+.dark {
+  --bg-base: #0c0f18;
+  --bg-surface: #131929;
+  --bg-surface-2: #1a2236;
+  --border-color: #1e2d45;
+  --text-primary: #f0f4ff;
+  --text-secondary: #8899b4;
+  --text-muted: #4d6180;
+  --sidebar-bg: #0f1422;
+  --sidebar-border: #1a2236;
+  --sidebar-hover: #1a2438;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Responsive main content ── */
+@media (min-width: 1280px) {
+  .dashboard-main {
+    margin-left: var(--sidebar-w);
+    transition: margin-left 0.2s ease-in-out;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Crypto ticker animation ── */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  animation: ticker 28s linear infinite;
+  will-change: transform;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Range input ── */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #e5e7eb;
+  outline: none;
+}
+
+.dark input[type='range'] {
+  background: #1e2d45;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0066cc;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.4);
+  transition: transform 0.2s;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0066cc;
+  cursor: pointer;
+  border: none;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 99px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e2d45;
 }

@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏛️ Credixa Bank
 
-## Getting Started
+A complete fintech banking application built with Next.js 16, Supabase, and Tailwind CSS.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 16.2.6 (App Router)
+- **Database + Auth**: Supabase (PostgreSQL + Auth + RLS)
+- **Email**: Resend
+- **Crypto**: CoinGecko API (free, no key needed)
+- **Styling**: Tailwind CSS
+- **State**: Zustand
+- **Validation**: Zod + React Hook Form
+- **Charts**: Recharts
+- **Animations**: Framer Motion
+
+## Features
+
+- User registration & login (Supabase Auth)
+- Dashboard with live crypto ticker (Bitcoin, Ethereum, Cardano)
+- Account management (savings, current, investment)
+- Money transfers with multiple speed options
+- Loan calculator with real-time calculations
+- KYC verification workflow
+- Card management
+- Transaction history with filters & pagination
+- Admin panel (user management, KYC approvals, loan approvals)
+- Email notifications via Resend
+- Protected routes via proxy (auth middleware)
+- Full TypeScript, RLS on all tables
+
+## Setup
+
+### 1. Environment Variables
+
+Copy `.env.local` and fill in your values:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+RESEND_API_KEY=your_resend_api_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Supabase Database Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a new Supabase project
+2. Go to **SQL Editor** and run the entire contents of `supabase-schema.sql`
+3. This creates all tables, indexes, and RLS policies
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Supabase Storage
 
-## Learn More
+Create a storage bucket named `kyc-documents` (private, max 10MB).
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Resend Email
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Sign up at [resend.com](https://resend.com) and get your API key (100 emails/day free).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 5. Run Development Server
 
-## Deploy on Vercel
+```bash
+npm install
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open [http://localhost:3000](http://localhost:3000)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Make Yourself Admin
+
+After registering, run this in Supabase SQL Editor:
+```sql
+UPDATE public.users SET role = 'admin' WHERE email = 'your@email.com';
+```
+
+## Deployment to Vercel
+
+1. Push to GitHub
+2. Import to Vercel
+3. Add all environment variables
+4. Deploy!
+
+## Project Structure
+
+```
+app/
+├── (auth)/          # Login, Register, Forgot Password
+├── (dashboard)/     # Dashboard, Accounts, Transactions, etc.
+├── admin/           # Admin panel
+└── api/             # All API routes
+components/
+├── auth/            # LoginForm, RegisterForm
+├── common/          # Navbar, Button, Card, Modal
+├── dashboard/       # AccountBalance, CryptoTicker, QuickActions
+├── loans/           # LoanCalculator
+└── transactions/    # TransferForm
+lib/
+├── supabase/        # Client + Server Supabase instances
+├── email/           # Resend email templates
+├── crypto/          # CoinGecko API
+└── validators/      # Zod schemas
+```
