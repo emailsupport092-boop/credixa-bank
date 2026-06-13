@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendTransactionEmail } from '@/lib/email/send';
 
-const FEES = { instant: 2.5, standard: 0, economy: 0 };
-
 function generateReference(): string {
   return 'TXN' + Date.now() + Math.random().toString(36).slice(2, 6).toUpperCase();
 }
@@ -17,9 +15,19 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { fromAccountId, toRecipient, amount, description, transferSpeed } = body;
+  const {
+    fromAccountId,
+    beneficiaryAccountNumber,
+    beneficiaryName,
+    bankName,
+    bankAddress,
+    amount,
+    purpose,
+    swiftCode,
+    routingNumber,
+  } = body;
 
-  if (!fromAccountId || !toRecipient || !amount || amount <= 0) {
+  if (!fromAccountId || !beneficiaryAccountNumber || !beneficiaryName || !bankName || !amount || amount <= 0) {
     return NextResponse.json({ error: 'Invalid transfer data' }, { status: 400 });
   }
 
@@ -34,33 +42,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Source account not found' }, { status: 404 });
   }
 
-  const fee = FEES[transferSpeed as keyof typeof FEES] || 0;
-  const totalAmount = amount + fee;
-
-  if (fromAccount.balance < totalAmount) {
+  if (fromAccount.balance < amount) {
     return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
   }
 
-  const { data: toAccount } = await supabase
-    .from('accounts')
-    .select('*, users(email, first_name, last_name)')
-    .eq('account_number', toRecipient)
-    .single();
-
   const reference = generateReference();
 
+  // Create transaction as pending — admin will approve/reject
   const { data: transaction, error: txError } = await supabase
     .from('transactions')
     .insert({
       from_account_id: fromAccountId,
-      to_account_id: toAccount?.id || null,
       from_user_id: user.id,
-      to_user_id: toAccount?.user_id || null,
       amount,
       type: 'transfer',
-      status: transferSpeed === 'instant' ? 'completed' : 'pending',
-      description,
+      status: 'pending',
+      description: purpose,
       reference,
+      beneficiary_name: beneficiaryName,
+      bank_name: bankName,
+      bank_address: bankAddress,
+      swift_code: swiftCode || null,
+      routing_number: routingNumber,
+      purpose,
     })
     .select()
     .single();
@@ -69,16 +73,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: txError.message }, { status: 500 });
   }
 
-  await supabase
+  // Debit funds immediately (held in transit until admin approves)
+  const { error: debitError } = await supabase
     .from('accounts')
-    .update({ balance: fromAccount.balance - totalAmount })
+    .update({ balance: fromAccount.balance - amount })
     .eq('id', fromAccountId);
 
-  if (toAccount && transferSpeed === 'instant') {
-    await supabase
-      .from('accounts')
-      .update({ balance: toAccount.balance + amount })
-      .eq('id', toAccount.id);
+  if (debitError) {
+    await supabase.from('transactions').delete().eq('id', transaction.id);
+    return NextResponse.json({ error: 'Failed to process transfer' }, { status: 500 });
   }
 
   const { data: profile } = await supabase
@@ -89,11 +92,21 @@ export async function POST(request: NextRequest) {
 
   if (profile) {
     try {
-      await sendTransactionEmail(profile.email, profile.first_name, amount, 'sent', reference, description);
+      await sendTransactionEmail(profile.email, profile.first_name, amount, 'sent', reference, purpose);
     } catch (e) {
       console.error('Email send failed:', e);
     }
   }
 
-  return NextResponse.json({ transaction, reference }, { status: 201 });
+  return NextResponse.json(
+    {
+      transactionId: transaction.id,
+      reference,
+      beneficiaryName,
+      bankName,
+      beneficiaryAccountNumber,
+      amount,
+    },
+    { status: 201 }
+  );
 }

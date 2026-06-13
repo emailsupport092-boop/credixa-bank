@@ -234,6 +234,48 @@ export async function sendOTPEmail(
   });
 }
 
+export async function sendTransferOTPEmail(
+  email: string,
+  firstName: string,
+  otp: string,
+  expiryMinutes: number = 10
+) {
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: `Transfer Authorization Code: ${otp} — ${APP_NAME}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0066cc, #004499); padding: 40px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🏛️ ${APP_NAME}</h1>
+        </div>
+        <div style="background: white; padding: 40px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
+          <h2 style="color: #111827; margin-top: 0;">Transfer Authorization Required 🔐</h2>
+          <p style="color: #6b7280;">Hi ${firstName},</p>
+          <p style="color: #6b7280;">
+            A bank transfer has been initiated on your account. Enter the code below to authorize it.
+            If you did not request this transfer, do not share this code and contact support immediately.
+          </p>
+          <div style="background: #f0f7ff; border: 2px dashed #0066cc; border-radius: 12px; padding: 32px; text-align: center; margin: 24px 0;">
+            <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Authorization Code</p>
+            <div style="font-size: 48px; font-weight: 900; letter-spacing: 12px; color: #0066cc; font-family: 'Courier New', monospace;">
+              ${otp}
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin: 12px 0 0 0;">
+              ⏱ Expires in ${expiryMinutes} minutes
+            </p>
+          </div>
+          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0;">
+            <p style="margin: 0; color: #92400e; font-size: 13px;">
+              🔒 <strong>Security tip:</strong> ${APP_NAME} will never call or email asking for this code. Do not share it.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function send2FAStatusEmail(
   email: string,
   firstName: string,

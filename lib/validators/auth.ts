@@ -40,6 +40,18 @@ export const transferSchema = z.object({
   transferSpeed: z.enum(['instant', 'standard', 'economy']),
 });
 
+export const bankTransferSchema = z.object({
+  fromAccountId: z.string().min(1, 'Please select a source account'),
+  beneficiaryAccountNumber: z.string().min(1, 'Please enter a beneficiary account number'),
+  beneficiaryName: z.string().min(1, 'Beneficiary name is required'),
+  bankName: z.string().min(1, 'Bank name is required'),
+  bankAddress: z.string().min(1, 'Bank address is required'),
+  amount: z.number().min(0.01, 'Amount must be greater than 0').max(10_000_000),
+  purpose: z.string().min(1, 'Purpose of payment is required'),
+  swiftCode: z.string().optional(),
+  routingNumber: z.string().min(1, 'Routing number is required'),
+});
+
 export const loanApplicationSchema = z.object({
   principalAmount: z.number().min(1000).max(500000),
   loanTerm: z.number().min(6).max(60),
@@ -66,6 +78,7 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type TransferFormData = z.infer<typeof transferSchema>;
+export type BankTransferFormData = z.infer<typeof bankTransferSchema>;
 export type LoanApplicationFormData = z.infer<typeof loanApplicationSchema>;
 export type KYCStep1FormData = z.infer<typeof kycStep1Schema>;
 export type KYCStep2FormData = z.infer<typeof kycStep2Schema>;

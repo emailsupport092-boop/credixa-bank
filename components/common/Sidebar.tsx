@@ -24,6 +24,9 @@ import {
   X,
   Sun,
   Moon,
+  BookUser,
+  ListOrdered,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -170,11 +173,14 @@ function SidebarContent({
               </p>
             )}
             {[
-              { href: '/admin',                  label: 'Overview',      icon: ShieldHalf },
-              { href: '/admin/users',            label: 'Users',         icon: Users },
-              { href: '/admin/kyc-verification', label: 'KYC Queue',     icon: BadgeCheck },
-              { href: '/admin/loans-approval',   label: 'Loans',         icon: Landmark },
-              { href: '/admin/cards',            label: 'Card Requests', icon: CreditCard },
+              { href: '/admin',                        label: 'Overview',      icon: ShieldHalf },
+              { href: '/admin/users',                  label: 'Users',         icon: Users },
+              { href: '/admin/kyc-verification',       label: 'KYC Queue',     icon: BadgeCheck },
+              { href: '/admin/loans-approval',         label: 'Loans',         icon: Landmark },
+              { href: '/admin/cards',                  label: 'Card Requests', icon: CreditCard },
+              { href: '/admin/transactions',           label: 'Transactions',  icon: ListOrdered },
+              { href: '/admin/beneficiary-accounts',   label: 'Beneficiaries', icon: BookUser },
+              { href: '/admin/settings',               label: 'Settings',      icon: SlidersHorizontal },
             ].map((item) => (
               <NavItem
                 key={item.href}
