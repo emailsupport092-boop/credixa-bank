@@ -1,31 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function LoansApprovalPage() {
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const fetchLoans = async () => {
-    const { data } = await supabase
-      .from('loans')
-      .select('*, users(first_name, last_name, email)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-    setLoans(data || []);
+    const res = await fetch('/api/admin/loans');
+    const data = await res.json();
+    setLoans(Array.isArray(data) ? data : []);
     setLoading(false);
   };
 
   useEffect(() => { fetchLoans(); }, []);
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
-    await supabase.from('loans').update({
-      status: action === 'approved' ? 'active' : 'rejected',
-    }).eq('id', id);
+    await fetch('/api/admin/loans', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action }),
+    });
     await fetchLoans();
   };
 

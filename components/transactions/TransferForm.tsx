@@ -31,6 +31,7 @@ interface BeneficiaryLookup {
   swift_code?: string;
   routing_number: string;
   currency: string;
+  is_internal?: boolean;
 }
 
 interface TransferResult {
@@ -66,7 +67,8 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export default function TransferForm({ accounts }: Props) {
   const [step, setStep] = useState<Step>('form');
   const [lookup, setLookup] = useState<BeneficiaryLookup | null>(null);
-  const [lookupStatus, setLookupStatus] = useState<'idle' | 'loading' | 'found' | 'not-found'>('idle');
+  const [lookupStatus, setLookupStatus] = useState<'idle' | 'loading' | 'found' | 'not-found' | 'self'>('idle');
+  const [lookupError, setLookupError] = useState('');
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -118,11 +120,13 @@ export default function TransferForm({ accounts }: Props) {
     }
 
     setLookupStatus('loading');
+    setLookupError('');
     lookupTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/beneficiary-accounts/${encodeURIComponent(acct)}`);
+        const body = await res.json();
         if (res.ok) {
-          const data: BeneficiaryLookup = await res.json();
+          const data: BeneficiaryLookup = body;
           setLookup(data);
           setLookupStatus('found');
           setValue('beneficiaryName', data.beneficiary_name, { shouldValidate: true });
@@ -130,6 +134,15 @@ export default function TransferForm({ accounts }: Props) {
           setValue('bankAddress', data.bank_address, { shouldValidate: true });
           setValue('swiftCode', data.swift_code || '', { shouldValidate: true });
           setValue('routingNumber', data.routing_number, { shouldValidate: true });
+        } else if (res.status === 400) {
+          setLookup(null);
+          setLookupStatus('self');
+          setLookupError(body.error || 'You cannot transfer to your own account');
+          setValue('beneficiaryName', '');
+          setValue('bankName', '');
+          setValue('bankAddress', '');
+          setValue('swiftCode', '');
+          setValue('routingNumber', '');
         } else {
           setLookup(null);
           setLookupStatus('not-found');
@@ -539,15 +552,24 @@ export default function TransferForm({ accounts }: Props) {
                 {lookupStatus === 'loading' && <Loader2 size={16} className="animate-spin text-gray-400" />}
                 {lookupStatus === 'found' && <CheckCircle size={16} className="text-emerald-500" />}
                 {lookupStatus === 'not-found' && <Search size={16} className="text-gray-400" />}
+                {lookupStatus === 'self' && <Search size={16} className="text-red-400" />}
               </div>
             </div>
-            {lookupStatus === 'found' && (
+            {lookupStatus === 'found' && lookup?.is_internal && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                <Lock size={11} /> Credixa customer found — instant, fee-free transfer
+              </p>
+            )}
+            {lookupStatus === 'found' && !lookup?.is_internal && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
                 <Lock size={11} /> Account verified — details auto-filled
               </p>
             )}
             {lookupStatus === 'not-found' && (watchAccountNumber?.length ?? 0) >= 4 && (
-              <p className="text-xs text-gray-400 mt-1">Account not in registry — fill details manually</p>
+              <p className="text-xs text-gray-400 mt-1">Account not found — fill details manually for an external transfer</p>
+            )}
+            {lookupStatus === 'self' && (
+              <p className="text-xs text-red-500 mt-1">{lookupError}</p>
             )}
             {errors.beneficiaryAccountNumber && (
               <p className="text-xs text-red-500 mt-1">{errors.beneficiaryAccountNumber.message}</p>
@@ -567,31 +589,42 @@ export default function TransferForm({ accounts }: Props) {
             {errors.beneficiaryName && <p className="text-xs text-red-500 mt-1">{errors.beneficiaryName.message}</p>}
           </div>
 
-          <div>
-            <label className={labelCls}>Bank Name <span className="text-red-500">*</span></label>
-            {lookup ? (
-              <div className="relative">
-                <input value={lookup.bank_name} readOnly className={lockedInputCls} />
-                <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+          {lookup?.is_internal ? (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl px-4 py-3 flex items-center gap-2.5">
+              <CheckCircle size={16} className="text-[#0066cc] dark:text-blue-400 shrink-0" />
+              <p className="text-sm text-[#0066cc] dark:text-blue-400">
+                This is an internal Credixa Bank account — no bank details needed.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className={labelCls}>Bank Name <span className="text-red-500">*</span></label>
+                {lookup ? (
+                  <div className="relative">
+                    <input value={lookup.bank_name} readOnly className={lockedInputCls} />
+                    <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                  </div>
+                ) : (
+                  <input {...register('bankName')} type="text" placeholder="e.g. Chase Bank" className={inputCls} />
+                )}
+                {errors.bankName && <p className="text-xs text-red-500 mt-1">{errors.bankName.message}</p>}
               </div>
-            ) : (
-              <input {...register('bankName')} type="text" placeholder="e.g. Chase Bank" className={inputCls} />
-            )}
-            {errors.bankName && <p className="text-xs text-red-500 mt-1">{errors.bankName.message}</p>}
-          </div>
 
-          <div>
-            <label className={labelCls}>Bank Address <span className="text-red-500">*</span></label>
-            {lookup ? (
-              <div className="relative">
-                <input value={lookup.bank_address} readOnly className={lockedInputCls} />
-                <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+              <div>
+                <label className={labelCls}>Bank Address <span className="text-red-500">*</span></label>
+                {lookup ? (
+                  <div className="relative">
+                    <input value={lookup.bank_address} readOnly className={lockedInputCls} />
+                    <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                  </div>
+                ) : (
+                  <input {...register('bankAddress')} type="text" placeholder="123 Main St, New York, NY" className={inputCls} />
+                )}
+                {errors.bankAddress && <p className="text-xs text-red-500 mt-1">{errors.bankAddress.message}</p>}
               </div>
-            ) : (
-              <input {...register('bankAddress')} type="text" placeholder="123 Main St, New York, NY" className={inputCls} />
-            )}
-            {errors.bankAddress && <p className="text-xs text-red-500 mt-1">{errors.bankAddress.message}</p>}
-          </div>
+            </>
+          )}
 
           <div>
             <label className={labelCls}>Amount (USD) <span className="text-red-500">*</span></label>
@@ -615,30 +648,34 @@ export default function TransferForm({ accounts }: Props) {
             {errors.purpose && <p className="text-xs text-red-500 mt-1">{errors.purpose.message}</p>}
           </div>
 
-          <div>
-            <label className={labelCls}>Swift Code <span className="text-gray-400 font-normal">(Optional)</span></label>
-            {lookup ? (
-              <div className="relative">
-                <input value={lookup.swift_code || '—'} readOnly className={lockedInputCls} />
-                <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+          {!lookup?.is_internal && (
+            <>
+              <div>
+                <label className={labelCls}>Swift Code <span className="text-gray-400 font-normal">(Optional)</span></label>
+                {lookup ? (
+                  <div className="relative">
+                    <input value={lookup.swift_code || '—'} readOnly className={lockedInputCls} />
+                    <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                  </div>
+                ) : (
+                  <input {...register('swiftCode')} type="text" placeholder="e.g. CHASUS33" className={`${inputCls} font-mono uppercase`} />
+                )}
               </div>
-            ) : (
-              <input {...register('swiftCode')} type="text" placeholder="e.g. CHASUS33" className={`${inputCls} font-mono uppercase`} />
-            )}
-          </div>
 
-          <div>
-            <label className={labelCls}>Routing Number <span className="text-red-500">*</span></label>
-            {lookup ? (
-              <div className="relative">
-                <input value={lookup.routing_number} readOnly className={lockedInputCls} />
-                <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+              <div>
+                <label className={labelCls}>Routing Number <span className="text-red-500">*</span></label>
+                {lookup ? (
+                  <div className="relative">
+                    <input value={lookup.routing_number} readOnly className={lockedInputCls} />
+                    <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                  </div>
+                ) : (
+                  <input {...register('routingNumber')} type="text" placeholder="e.g. 021000021" className={`${inputCls} font-mono`} />
+                )}
+                {errors.routingNumber && <p className="text-xs text-red-500 mt-1">{errors.routingNumber.message}</p>}
               </div>
-            ) : (
-              <input {...register('routingNumber')} type="text" placeholder="e.g. 021000021" className={`${inputCls} font-mono`} />
-            )}
-            {errors.routingNumber && <p className="text-xs text-red-500 mt-1">{errors.routingNumber.message}</p>}
-          </div>
+            </>
+          )}
 
           <button
             type="submit"

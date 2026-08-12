@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight, Shield, Zap, Globe, TrendingUp, CreditCard,
   Lock, CheckCircle, ChevronRight
@@ -19,6 +20,7 @@ export default function LandingPage() {
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-slate-400">
             <a href="#features" className="hover:text-gray-900 dark:hover:text-white transition-colors">Features</a>
+            <a href="#life" className="hover:text-gray-900 dark:hover:text-white transition-colors">Who it's for</a>
             <a href="#security" className="hover:text-gray-900 dark:hover:text-white transition-colors">Security</a>
             <a href="#how" className="hover:text-gray-900 dark:hover:text-white transition-colors">How it works</a>
           </div>
@@ -30,95 +32,85 @@ export default function LandingPage() {
               href="/register"
               className="text-sm font-semibold bg-[#0066cc] text-white px-4 py-2 rounded-xl hover:bg-[#004499] transition-all active:scale-[0.98] shadow-sm"
             >
-              Get Started
+              Open an Account
             </Link>
           </div>
         </div>
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative pt-32 pb-24 px-6 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-linear-to-b from-blue-50 dark:from-blue-950/30 to-transparent rounded-full blur-3xl opacity-60 pointer-events-none" />
-        <div className="absolute top-20 right-0 w-72 h-72 bg-blue-100 dark:bg-blue-900/20 rounded-full blur-3xl opacity-40 pointer-events-none" />
-        <div className="absolute top-40 left-0 w-56 h-56 bg-indigo-100 dark:bg-indigo-900/20 rounded-full blur-3xl opacity-40 pointer-events-none" />
+      <section className="relative pt-32 pb-20 px-6 bg-white dark:bg-slate-950">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800/50 text-[#0066cc] dark:text-blue-400 text-sm font-semibold px-4 py-1.5 rounded-full mb-6">
+              <span className="w-1.5 h-1.5 bg-[#0066cc] dark:bg-blue-400 rounded-full animate-pulse" />
+              Trusted by 50,000+ customers
+            </div>
 
-        <div className="relative max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800/50 text-[#0066cc] dark:text-blue-400 text-sm font-semibold px-4 py-1.5 rounded-full mb-6">
-            <span className="w-1.5 h-1.5 bg-[#0066cc] dark:bg-blue-400 rounded-full animate-pulse" />
-            Trusted by 50,000+ customers
-          </div>
+            <h1 className="text-5xl sm:text-6xl font-black text-gray-900 dark:text-white leading-[1.05] tracking-tight mb-6">
+              Banking that works{' '}
+              <span className="relative">
+                <span className="relative z-10 text-[#0066cc] dark:text-blue-400">for you</span>
+                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
+                  <path d="M2 9C50 3 100 1 150 3C200 5 250 8 298 6" stroke="#0066cc" strokeWidth="3" strokeLinecap="round" opacity="0.3"/>
+                </svg>
+              </span>
+            </h1>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.05] tracking-tight mb-6">
-            Banking that works{' '}
-            <span className="relative">
-              <span className="relative z-10 text-[#0066cc] dark:text-blue-400">for you</span>
-              <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
-                <path d="M2 9C50 3 100 1 150 3C200 5 250 8 298 6" stroke="#0066cc" strokeWidth="3" strokeLinecap="round" opacity="0.3"/>
-              </svg>
-            </span>
-          </h1>
+            <p className="text-xl text-gray-500 dark:text-slate-400 max-w-xl mb-8 leading-relaxed">
+              Send money instantly, grow your savings, access credit — all in one secure
+              account built for everyday life.
+            </p>
 
-          <p className="text-xl text-gray-500 dark:text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Send money instantly, grow your savings, access credit — all in one secure platform
-            built for the modern world.
-          </p>
+            <div className="flex flex-col sm:flex-row gap-3 mb-10">
+              <Link
+                href="/register"
+                className="flex items-center justify-center gap-2 bg-[#0066cc] text-white font-bold px-8 py-4 rounded-2xl hover:bg-[#004499] transition-all shadow-lg shadow-blue-200 dark:shadow-blue-900/40 active:scale-[0.98] text-base"
+              >
+                Open Free Account
+                <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/login"
+                className="flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 font-semibold px-8 py-4 rounded-2xl border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all text-base"
+              >
+                Sign In
+                <ChevronRight size={16} />
+              </Link>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <Link
-              href="/register"
-              className="flex items-center gap-2 bg-[#0066cc] text-white font-bold px-8 py-4 rounded-2xl hover:bg-[#004499] transition-all shadow-lg shadow-blue-200 dark:shadow-blue-900/40 active:scale-[0.98] text-base"
-            >
-              Open Free Account
-              <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/login"
-              className="flex items-center gap-2 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 font-semibold px-8 py-4 rounded-2xl border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all text-base"
-            >
-              Sign In
-              <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-6 mt-10 text-sm text-gray-400 dark:text-slate-500">
-            {['No hidden fees', 'Bank-grade security', 'Instant transfers', 'FDIC insured'].map((t) => (
-              <div key={t} className="flex items-center gap-1.5">
-                <CheckCircle size={14} className="text-[#0066cc] dark:text-blue-400" />
-                {t}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Dashboard preview card */}
-        <div className="relative max-w-3xl mx-auto mt-16">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-gray-200 dark:shadow-black/40 border border-gray-100 dark:border-slate-800 overflow-hidden p-6">
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {[
-                { label: 'Total Balance', value: '$45,000', color: 'border-[#0066cc]' },
-                { label: 'Monthly Spending', value: '$1,200', color: 'border-emerald-500' },
-                { label: 'Available', value: '$53,800', color: 'border-amber-400' },
-              ].map((c) => (
-                <div key={c.label} className={`bg-gray-50 dark:bg-slate-800 rounded-xl p-3 border-l-4 ${c.color}`}>
-                  <p className="text-xs text-gray-400 dark:text-slate-500">{c.label}</p>
-                  <p className="font-bold text-gray-900 dark:text-white mt-0.5">{c.value}</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400 dark:text-slate-500">
+              {['No hidden fees', 'Bank-grade security', 'Instant transfers', 'FDIC insured'].map((t) => (
+                <div key={t} className="flex items-center gap-1.5">
+                  <CheckCircle size={14} className="text-[#0066cc] dark:text-blue-400" />
+                  {t}
                 </div>
               ))}
             </div>
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#0066cc]/10 dark:bg-blue-900/40 rounded-lg flex items-center justify-center">
-                  <TrendingUp size={14} className="text-[#0066cc] dark:text-blue-400" />
+          </div>
+
+          {/* Hero photo */}
+          <div className="relative">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-gray-200 dark:shadow-black/40 aspect-4/5">
+              <Image
+                src="/images/landing/hero-payment.jpg"
+                alt="A Credixa customer paying with her card at a small business counter"
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 560px"
+                className="object-cover"
+              />
+            </div>
+            {/* Floating stat card */}
+            <div className="hidden sm:block absolute -bottom-6 -left-6 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-gray-200 dark:shadow-black/40 border border-gray-100 dark:border-slate-800 p-4 w-56">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg flex items-center justify-center">
+                  <CheckCircle size={15} className="text-emerald-500" />
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">BTC/USD</p>
-                  <p className="text-xs text-gray-400 dark:text-slate-500">Bitcoin</p>
-                </div>
+                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Payment sent</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-gray-900 dark:text-white">$67,420</p>
-                <p className="text-xs text-emerald-500 font-semibold">+2.4%</p>
-              </div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">$42.50</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">To Riverside Coffee Co.</p>
             </div>
           </div>
         </div>
@@ -176,6 +168,53 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── REAL LIFE / WHO IT'S FOR ── */}
+      <section id="life" className="py-24 px-6 bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-[#0066cc] dark:text-blue-400 font-semibold text-sm uppercase tracking-widest mb-3">Real people, real banking</p>
+            <h2 className="text-4xl font-black text-gray-900 dark:text-white">Built for whatever you're working toward</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              {
+                img: '/images/landing/business-owners.jpg',
+                alt: 'Two small business partners reviewing finances together on a laptop',
+                title: 'Small business owners',
+                desc: 'Separate accounts, fast payouts, and tools to keep cash flow simple.',
+              },
+              {
+                img: '/images/landing/milestone-family.jpg',
+                alt: 'Colleagues celebrating a milestone in the office',
+                title: 'Big milestones',
+                desc: 'From your first loan to your first home — we help you get there.',
+              },
+              {
+                img: '/images/landing/students.jpg',
+                alt: 'Students studying together and managing their budget',
+                title: 'Students & young savers',
+                desc: 'Fee-free accounts and budgeting tools built for getting started.',
+              },
+            ].map(({ img, alt, title, desc }) => (
+              <div key={title} className="group">
+                <div className="relative rounded-2xl overflow-hidden aspect-4/3 mb-4">
+                  <Image
+                    src={img}
+                    alt={alt}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── HOW IT WORKS ── */}
       <section id="how" className="py-24 px-6 bg-gray-50 dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
@@ -187,9 +226,9 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             <div className="hidden md:block absolute top-7 left-1/4 right-1/4 h-0.5 bg-linear-to-r from-[#0066cc]/30 via-[#0066cc] to-[#0066cc]/30" />
             {[
-              { step: '01', title: 'Create Account', desc: 'Sign up in under 2 minutes. No paperwork, no branch visits required.' },
-              { step: '02', title: 'Verify Identity', desc: 'Complete a quick KYC check. Upload your ID and get verified in 24 hours.' },
-              { step: '03', title: 'Start Banking', desc: 'Send money, apply for loans, track crypto — all in one dashboard.' },
+              { step: '01', title: 'Tell us about you', desc: 'Share your personal details so we can open an account in your name.' },
+              { step: '02', title: 'Get your account number', desc: 'Your account is created instantly with its own dedicated account number.' },
+              { step: '03', title: 'Verify to unlock more', desc: 'Upload an ID document to unlock higher limits — usually within 24 hours.' },
             ].map(({ step, title, desc }) => (
               <div key={step} className="text-center relative">
                 <div className="w-14 h-14 bg-[#0066cc] text-white rounded-2xl flex items-center justify-center font-black text-lg mx-auto mb-4 shadow-md shadow-blue-200 dark:shadow-blue-900/40">
@@ -209,22 +248,33 @@ export default function LandingPage() {
           <div className="bg-linear-to-br from-[#0066cc] to-[#002266] rounded-3xl p-10 md:p-14 text-white overflow-hidden relative">
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/3" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-4">
-                <Shield size={20} className="text-blue-300" />
-                <span className="text-blue-200 font-semibold text-sm uppercase tracking-widest">Security first</span>
+            <div className="relative grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-10 items-center">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield size={20} className="text-blue-300" />
+                  <span className="text-blue-200 font-semibold text-sm uppercase tracking-widest">Security first</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-black mb-4">Your money is safe with us</h2>
+                <p className="text-blue-200 max-w-xl mb-8 text-lg">
+                  We use bank-grade encryption, two-factor authentication, and Row-Level Security to ensure only you can access your account.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {['256-bit AES encryption', 'Email 2FA on every login', 'Row-Level Security (RLS)', 'JWT token authentication', 'HTTPS enforced everywhere', 'Real-time fraud monitoring'].map((item) => (
+                    <div key={item} className="flex items-center gap-2.5 text-sm">
+                      <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+                      <span className="text-blue-100">{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <h2 className="text-3xl md:text-4xl font-black mb-4">Your money is safe with us</h2>
-              <p className="text-blue-200 max-w-xl mb-8 text-lg">
-                We use bank-grade encryption, two-factor authentication, and Row-Level Security to ensure only you can access your account.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {['256-bit AES encryption', 'Email 2FA on every login', 'Row-Level Security (RLS)', 'JWT token authentication', 'HTTPS enforced everywhere', 'Real-time fraud monitoring'].map((item) => (
-                  <div key={item} className="flex items-center gap-2.5 text-sm">
-                    <CheckCircle size={15} className="text-emerald-400 shrink-0" />
-                    <span className="text-blue-100">{item}</span>
-                  </div>
-                ))}
+              <div className="relative hidden md:block rounded-2xl overflow-hidden aspect-square shadow-2xl">
+                <Image
+                  src="/images/landing/handshake.jpg"
+                  alt="Two people shaking hands after opening an account"
+                  fill
+                  sizes="320px"
+                  className="object-cover"
+                />
               </div>
             </div>
           </div>

@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
-export const registerSchema = z.object({
+function isAtLeast18(dateString: string): boolean {
+  const dob = new Date(dateString);
+  if (Number.isNaN(dob.getTime())) return false;
+  const eighteenYearsAgo = new Date();
+  eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+  return dob <= eighteenYearsAgo;
+}
+
+export const registerAccountSchema = z.object({
   first_name: z.string().min(2, 'First name must be at least 2 characters').max(50),
   last_name: z.string().min(2, 'Last name must be at least 2 characters').max(50),
   email: z.string().email('Please enter a valid email address'),
@@ -10,6 +18,18 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
 });
+
+export const registerDetailsSchema = z.object({
+  date_of_birth: z
+    .string()
+    .min(1, 'Date of birth is required')
+    .refine(isAtLeast18, 'You must be at least 18 years old to open an account'),
+  nationality: z.string().min(2, 'Nationality is required'),
+  phone: z.string().min(10, 'Please enter a valid phone number'),
+  address: z.string().min(10, 'Please enter your full residential address'),
+});
+
+export const registerSchema = registerAccountSchema.merge(registerDetailsSchema);
 
 export const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -74,6 +94,8 @@ export const kycStep2Schema = z.object({
 });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type RegisterAccountFormData = z.infer<typeof registerAccountSchema>;
+export type RegisterDetailsFormData = z.infer<typeof registerDetailsSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
