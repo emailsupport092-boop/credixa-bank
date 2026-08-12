@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Account } from '@/types';
-import { PlusCircle, CreditCard, TrendingUp, Wallet } from 'lucide-react';
+import { PlusCircle, CreditCard, TrendingUp, Wallet, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const typeIcons: Record<string, any> = {
@@ -22,7 +22,14 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const supabase = createClient();
+
+  const copyAccountNumber = async (id: string, accountNumber: string) => {
+    await navigator.clipboard.writeText(accountNumber);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+  };
 
   const fetchAccounts = async () => {
     const { data } = await supabase.from('accounts').select('*').order('created_at');
@@ -126,9 +133,26 @@ export default function AccountsPage() {
 
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <p className="text-white/70 text-xs">Account Number</p>
-                  <p className="text-white font-mono text-sm tracking-widest mt-0.5">
-                    {account.account_number.replace(/(\w{4})/g, '$1 ').trim()}
-                  </p>
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <p className="text-white font-mono text-sm tracking-widest">
+                      {account.account_number.replace(/(\w{4})/g, '$1 ').trim()}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyAccountNumber(account.id, account.account_number);
+                      }}
+                      className="shrink-0 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                      title="Copy account number"
+                    >
+                      {copiedId === account.id ? (
+                        <Check size={13} className="text-white" />
+                      ) : (
+                        <Copy size={13} className="text-white" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

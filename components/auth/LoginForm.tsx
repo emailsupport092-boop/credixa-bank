@@ -36,7 +36,16 @@ export default function LoginForm() {
 
     if (!authData.user?.email_confirmed_at) {
       await supabase.auth.signOut();
-      setServerError('Please verify your email first. Check your inbox for the confirmation link.');
+      const resendRes = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email }),
+      });
+      if (resendRes.ok) {
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+      } else {
+        setServerError('Please verify your email first. We were unable to send a new code — try again shortly.');
+      }
       return;
     }
 

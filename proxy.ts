@@ -8,9 +8,8 @@ const publicRoutes = [
   "/forgot-password",
   "/reset-password",
   "/verify-otp",
+  "/verify-email",
   "/email-verified",
-  "/link-expired",
-  "/auth/callback",
 ];
 
 // Redirect logged-in users away from these pages

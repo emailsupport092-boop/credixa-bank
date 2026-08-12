@@ -2,14 +2,15 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowRight, CheckCircle, Check, KeyRound } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, Check, KeyRound, RefreshCw } from 'lucide-react';
 import { resetPasswordSchema, ResetPasswordFormData } from '@/lib/validators/auth';
+
+const CODE_LENGTH = 6;
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -35,10 +36,16 @@ function PasswordStrength({ password }: { password: string }) {
 export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [serverError, setServerError] = useState('');
+  const [attemptsLeft, setAttemptsLeft] = useState(3);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(60);
   const [done, setDone] = useState(false);
+  const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email') || '';
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -46,12 +53,81 @@ export default function ResetPasswordPage() {
 
   const password = watch('password', '');
 
+  useEffect(() => {
+    codeRefs.current[0]?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleDigitChange = (index: number, value: string) => {
+    if (value.length > 1) {
+      const pasted = value.replace(/\D/g, '').slice(0, CODE_LENGTH);
+      const newDigits = [...digits];
+      pasted.split('').forEach((ch, i) => {
+        if (index + i < CODE_LENGTH) newDigits[index + i] = ch;
+      });
+      setDigits(newDigits);
+      const nextIndex = Math.min(index + pasted.length, CODE_LENGTH - 1);
+      codeRefs.current[nextIndex]?.focus();
+      return;
+    }
+    if (!/^\d?$/.test(value)) return;
+    const newDigits = [...digits];
+    newDigits[index] = value;
+    setDigits(newDigits);
+    if (value && index < CODE_LENGTH - 1) {
+      codeRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[index] && index > 0) {
+      codeRefs.current[index - 1]?.focus();
+    }
+  };
+
   const onSubmit = async (data: ResetPasswordFormData) => {
     setServerError('');
-    const { error } = await supabase.auth.updateUser({ password: data.password });
-    if (error) { setServerError(error.message); return; }
+    const code = digits.join('');
+    if (code.length !== CODE_LENGTH) { setServerError('Please enter all 6 digits'); return; }
+
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, password: data.password }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      setServerError(result.error || 'Failed to reset password');
+      if (result.attemptsRemaining !== undefined) setAttemptsLeft(result.attemptsRemaining);
+      return;
+    }
     setDone(true);
-    setTimeout(() => router.push('/dashboard'), 2000);
+    setTimeout(() => router.push('/login'), 2000);
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setServerError('');
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (res.ok) {
+      setDigits(Array(CODE_LENGTH).fill(''));
+      setAttemptsLeft(3);
+      setResendCooldown(60);
+      codeRefs.current[0]?.focus();
+    } else {
+      const data = await res.json();
+      setServerError(data.error || 'Failed to resend code');
+    }
+    setResending(false);
   };
 
   if (done) {
@@ -62,7 +138,7 @@ export default function ResetPasswordPage() {
             <CheckCircle size={28} className="text-emerald-500" />
           </div>
           <h2 className="text-xl font-bold text-gray-900">Password updated!</h2>
-          <p className="text-gray-500 text-sm mt-2 mb-6">Redirecting you to your dashboard...</p>
+          <p className="text-gray-500 text-sm mt-2 mb-6">Redirecting you to sign in...</p>
           <div className="flex justify-center">
             <div className="w-6 h-6 border-2 border-[#0066cc] border-t-transparent rounded-full animate-spin" />
           </div>
@@ -89,15 +165,15 @@ export default function ResetPasswordPage() {
             Create a new<br />password.
           </h2>
           <p className="text-blue-200 text-lg leading-relaxed">
-            Choose a strong password to keep your account safe and secure.
+            Enter the code we sent you and choose a strong new password.
           </p>
         </div>
 
         <div className="relative space-y-3">
           {[
-            'Use 8 or more characters',
-            'Include uppercase & numbers',
-            'Never share your password',
+            'Code valid for 10 minutes',
+            'Use 8+ characters, uppercase & numbers',
+            'Never share your code or password',
           ].map((item) => (
             <div key={item} className="flex items-center gap-2.5 text-sm">
               <CheckCircle size={15} className="text-blue-300 shrink-0" />
@@ -122,9 +198,10 @@ export default function ResetPasswordPage() {
             <KeyRound size={22} className="text-[#0066cc]" />
           </div>
 
-          <h1 className="text-3xl font-black text-gray-900 mb-1">New password</h1>
+          <h1 className="text-3xl font-black text-gray-900 mb-1">Reset your password</h1>
           <p className="text-gray-500 text-sm mb-8">
-            Enter a strong password for your account.
+            Enter the 6-digit code sent to{' '}
+            {email ? <span className="font-semibold text-gray-700">{email}</span> : 'your email address'}, then choose a new password.
           </p>
 
           {serverError && (
@@ -133,7 +210,52 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
+          {attemptsLeft <= 2 && attemptsLeft > 0 && (
+            <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm rounded-xl px-4 py-3 mb-5">
+              {attemptsLeft} attempt{attemptsLeft !== 1 ? 's' : ''} remaining before lockout
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Verification code</label>
+              <div className="flex justify-between gap-2">
+                {digits.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={(el) => { codeRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    onFocus={(e) => e.target.select()}
+                    className={`
+                      w-full aspect-square text-center text-xl font-bold rounded-xl border-2 transition-all
+                      focus:outline-none focus:border-[#0066cc] focus:ring-3 focus:ring-blue-50
+                      ${digit ? 'border-[#0066cc] bg-blue-50 text-[#0066cc]' : 'border-gray-200 bg-white text-gray-900'}
+                    `}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 text-right">
+                {resendCooldown > 0 ? (
+                  <span className="text-xs text-gray-400">Resend in {resendCooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="inline-flex items-center gap-1 text-xs text-[#0066cc] hover:text-[#004499] font-semibold disabled:opacity-50 transition-colors"
+                  >
+                    <RefreshCw size={11} className={resending ? 'animate-spin' : ''} />
+                    {resending ? 'Sending...' : 'Resend code'}
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">New password</label>
               <div className="relative">
@@ -171,7 +293,7 @@ export default function ResetPasswordPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || digits.join('').length !== CODE_LENGTH}
               className="w-full flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004499] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all active:scale-[0.98] mt-2"
             >
               {isSubmitting ? (
@@ -183,7 +305,8 @@ export default function ResetPasswordPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+            <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+              <ArrowLeft size={14} />
               Back to Sign In
             </Link>
           </div>

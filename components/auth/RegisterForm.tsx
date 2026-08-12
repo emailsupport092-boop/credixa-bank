@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowRight, Check, Mail, X } from 'lucide-react';
-import { registerSchema, RegisterFormData } from '@/lib/validators/auth';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Eye, EyeOff, ArrowRight, ArrowLeft, Check, User, IdCard,
+} from 'lucide-react';
+import {
+  registerAccountSchema, registerDetailsSchema,
+  RegisterAccountFormData, RegisterDetailsFormData,
+} from '@/lib/validators/auth';
 
 const perks = [
   'Free savings & current accounts',
@@ -15,6 +21,12 @@ const perks = [
   'Email 2FA security',
   'Loan calculator & applications',
 ];
+
+const inputCls =
+  'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0066cc] focus:ring-3 focus:ring-blue-50 transition-all';
+const labelCls = 'block text-sm font-semibold text-gray-700 mb-1.5';
+
+type Step = 'account' | 'details';
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -38,53 +50,44 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterForm() {
+  const [step, setStep] = useState<Step>('account');
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
-  const [showToast, setShowToast] = useState(false);
   const router = useRouter();
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+  const accountForm = useForm<RegisterAccountFormData>({
+    resolver: zodResolver(registerAccountSchema),
+  });
+  const detailsForm = useForm<RegisterDetailsFormData>({
+    resolver: zodResolver(registerDetailsSchema),
   });
 
-  const password = watch('password', '');
+  const password = accountForm.watch('password', '');
 
-  useEffect(() => {
-    if (!showToast) return;
-    const t = setTimeout(() => router.push('/login'), 4000);
-    return () => clearTimeout(t);
-  }, [showToast, router]);
-
-  const onSubmit = async (data: RegisterFormData) => {
+  const onAccountSubmit = () => {
     setServerError('');
+    setStep('details');
+  };
+
+  const onDetailsSubmit = async (details: RegisterDetailsFormData) => {
+    setServerError('');
+    const account = accountForm.getValues();
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...account, ...details }),
     });
     const result = await res.json();
-    if (!res.ok) { setServerError(result.error || 'Registration failed'); return; }
-    setShowToast(true);
+    if (!res.ok) {
+      setServerError(result.error || 'Registration failed');
+      setStep('account');
+      return;
+    }
+    router.push(`/verify-email?email=${encodeURIComponent(account.email)}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Toast */}
-      {showToast && (
-        <div className="fixed top-5 right-5 z-50 flex items-start gap-3 bg-white border border-gray-100 shadow-xl rounded-2xl px-4 py-3.5 max-w-sm animate-in slide-in-from-top-2 duration-300">
-          <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-            <Mail size={15} className="text-emerald-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900">Check your inbox</p>
-            <p className="text-xs text-gray-500 mt-0.5">Confirmation link sent. Redirecting to sign in…</p>
-          </div>
-          <button onClick={() => { setShowToast(false); router.push('/login'); }} className="text-gray-400 hover:text-gray-600 mt-0.5">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       {/* Left — branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-[#0066cc] relative overflow-hidden flex-col justify-between p-12">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/5 rounded-full" />
@@ -98,10 +101,11 @@ export default function RegisterForm() {
             <span className="text-white font-bold text-xl">Credixa Bank</span>
           </div>
           <h2 className="text-4xl font-black text-white leading-tight mb-4">
-            Your finances,<br />your way.
+            Open your account,<br />the right way.
           </h2>
           <p className="text-blue-200 text-lg leading-relaxed">
-            Open a free account in 2 minutes. No paperwork, no hidden fees.
+            A couple of details is all it takes to open a real account with a dedicated
+            account number — no paperwork, no branch visits.
           </p>
         </div>
 
@@ -128,11 +132,42 @@ export default function RegisterForm() {
             <span className="font-bold text-xl text-gray-900">Credixa Bank</span>
           </div>
 
-          <h1 className="text-3xl font-black text-gray-900 mb-1">Create account</h1>
-          <p className="text-gray-500 text-sm mb-8">
+          <h1 className="text-3xl font-black text-gray-900 mb-1">Open an account</h1>
+          <p className="text-gray-500 text-sm mb-6">
             Already have one?{' '}
             <Link href="/login" className="text-[#0066cc] font-semibold hover:underline">Sign in</Link>
           </p>
+
+          {/* Step indicator */}
+          <div className="flex items-center mb-7">
+            {[
+              { n: 'account' as Step, label: 'Your details', icon: User },
+              { n: 'details' as Step, label: 'Personal info', icon: IdCard },
+            ].map(({ n, label, icon: Icon }, i) => {
+              const order: Step[] = ['account', 'details'];
+              const active = order.indexOf(step) >= i;
+              const current = step === n;
+              return (
+                <div key={n} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                      active && !current ? 'bg-emerald-500 text-white' :
+                      current ? 'bg-[#0066cc] text-white ring-4 ring-blue-100' :
+                                'bg-gray-100 text-gray-400'
+                    }`}>
+                      {active && !current ? <Check size={16} /> : <Icon size={16} />}
+                    </div>
+                    <span className={`text-xs mt-1.5 font-medium ${current ? 'text-[#0066cc]' : 'text-gray-400'}`}>
+                      {label}
+                    </span>
+                  </div>
+                  {i === 0 && (
+                    <div className={`flex-1 h-0.5 mx-3 mb-5 transition-colors ${active && step === 'details' ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           {serverError && (
             <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 mb-5">
@@ -140,69 +175,139 @@ export default function RegisterForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              {([
-                { name: 'first_name', label: 'First name', placeholder: 'John' },
-                { name: 'last_name', label: 'Last name', placeholder: 'Doe' },
-              ] as const).map(({ name, label, placeholder }) => (
-                <div key={name}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
-                  <input
-                    {...register(name)}
-                    placeholder={placeholder}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0066cc] focus:ring-3 focus:ring-blue-50 transition-all"
-                  />
-                  {errors[name] && <p className="text-xs text-red-500 mt-1">{errors[name]?.message}</p>}
+          <AnimatePresence mode="wait">
+            {step === 'account' && (
+              <motion.form
+                key="account"
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={accountForm.handleSubmit(onAccountSubmit)}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { name: 'first_name', label: 'First name', placeholder: 'John' },
+                    { name: 'last_name', label: 'Last name', placeholder: 'Doe' },
+                  ] as const).map(({ name, label, placeholder }) => (
+                    <div key={name}>
+                      <label className={labelCls}>{label}</label>
+                      <input {...accountForm.register(name)} placeholder={placeholder} className={inputCls} />
+                      {accountForm.formState.errors[name] && (
+                        <p className="text-xs text-red-500 mt-1">{accountForm.formState.errors[name]?.message}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
-              <input
-                {...register('email')}
-                type="email"
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0066cc] focus:ring-3 focus:ring-blue-50 transition-all"
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1.5">{errors.email.message}</p>}
-            </div>
+                <div>
+                  <label className={labelCls}>Email address</label>
+                  <input {...accountForm.register('email')} type="email" placeholder="you@example.com" className={inputCls} />
+                  {accountForm.formState.errors.email && (
+                    <p className="text-xs text-red-500 mt-1.5">{accountForm.formState.errors.email.message}</p>
+                  )}
+                </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  {...register('password')}
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Min 8 chars, 1 uppercase, 1 number"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0066cc] focus:ring-3 focus:ring-blue-50 transition-all pr-11"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <div>
+                  <label className={labelCls}>Password</label>
+                  <div className="relative">
+                    <input
+                      {...accountForm.register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Min 8 chars, 1 uppercase, 1 number"
+                      className={`${inputCls} pr-11`}
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <PasswordStrength password={password} />
+                  {accountForm.formState.errors.password && (
+                    <p className="text-xs text-red-500 mt-1.5">{accountForm.formState.errors.password.message}</p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004499] text-white font-bold py-3.5 rounded-xl transition-all active:scale-[0.98] mt-2"
+                >
+                  Continue
+                  <ArrowRight size={16} />
                 </button>
-              </div>
-              <PasswordStrength password={password} />
-              {errors.password && <p className="text-xs text-red-500 mt-1.5">{errors.password.message}</p>}
-            </div>
+              </motion.form>
+            )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004499] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all active:scale-[0.98] mt-2"
-            >
-              {isSubmitting
-                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><span>Create Account</span><ArrowRight size={16} /></>
-              }
-            </button>
+            {step === 'details' && (
+              <motion.form
+                key="details"
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={detailsForm.handleSubmit(onDetailsSubmit)}
+                className="space-y-4"
+              >
+                <p className="text-xs text-gray-500 -mt-1 mb-1">
+                  Required to open a bank account in your name.
+                </p>
 
-            <p className="text-xs text-gray-400 text-center pt-1">
-              By creating an account you agree to our{' '}
-              <a href="#" className="underline hover:text-gray-600">Terms of Service</a>
-            </p>
-          </form>
+                <div>
+                  <label className={labelCls}>Date of birth</label>
+                  <input {...detailsForm.register('date_of_birth')} type="date" className={`${inputCls} [color-scheme:auto]`} />
+                  {detailsForm.formState.errors.date_of_birth && (
+                    <p className="text-xs text-red-500 mt-1">{detailsForm.formState.errors.date_of_birth.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className={labelCls}>Nationality</label>
+                  <input {...detailsForm.register('nationality')} placeholder="United States" className={inputCls} />
+                  {detailsForm.formState.errors.nationality && (
+                    <p className="text-xs text-red-500 mt-1">{detailsForm.formState.errors.nationality.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className={labelCls}>Phone number</label>
+                  <input {...detailsForm.register('phone')} type="tel" placeholder="+1 (555) 000-0000" className={inputCls} />
+                  {detailsForm.formState.errors.phone && (
+                    <p className="text-xs text-red-500 mt-1">{detailsForm.formState.errors.phone.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className={labelCls}>Residential address</label>
+                  <input {...detailsForm.register('address')} placeholder="123 Main St, New York, NY 10001" className={inputCls} />
+                  {detailsForm.formState.errors.address && (
+                    <p className="text-xs text-red-500 mt-1">{detailsForm.formState.errors.address.message}</p>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setStep('account')}
+                    className="flex items-center justify-center gap-2 border border-gray-200 text-gray-700 font-semibold px-4 py-3.5 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={detailsForm.formState.isSubmitting}
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004499] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all active:scale-[0.98]"
+                  >
+                    {detailsForm.formState.isSubmitting
+                      ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <>Open Account<ArrowRight size={16} /></>
+                    }
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-400 text-center pt-1">
+                  By opening an account you agree to our{' '}
+                  <a href="#" className="underline hover:text-gray-600">Terms of Service</a>
+                </p>
+              </motion.form>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

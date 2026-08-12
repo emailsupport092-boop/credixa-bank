@@ -5,8 +5,19 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Credixa Bank <noreply@shopoceanglow.com>';
 const APP_NAME = 'Credixa Bank';
 
+// The Resend SDK never throws for API-level failures (unverified domain,
+// rejected recipient, rate limits, etc.) — it always resolves with
+// { data, error }. Every caller here relies on a thrown error to detect a
+// failed send, so this must surface `error` itself or failures go silent.
+async function sendEmail(payload: Parameters<typeof resend.emails.send>[0]) {
+  const { error } = await resend.emails.send(payload);
+  if (error) {
+    throw new Error(error.message || 'Failed to send email');
+  }
+}
+
 export async function sendWelcomeEmail(email: string, firstName: string) {
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `Welcome to ${APP_NAME}!`,
@@ -52,7 +63,7 @@ export async function sendTransactionEmail(
   description?: string
 ) {
   const isSent = type === 'sent';
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `Transaction ${isSent ? 'Sent' : 'Received'} - ${APP_NAME}`,
@@ -104,7 +115,7 @@ export async function sendLoanApplicationEmail(
   term: number,
   monthlyPayment: number
 ) {
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `Loan Application Received - ${APP_NAME}`,
@@ -158,7 +169,7 @@ export async function sendKYCStatusEmail(
 
   const config = statusConfig[status];
 
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `KYC ${config.title} - ${APP_NAME}`,
@@ -191,7 +202,7 @@ export async function sendOTPEmail(
   otp: string,
   expiryMinutes: number = 10
 ) {
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `Your ${APP_NAME} verification code: ${otp}`,
@@ -240,7 +251,7 @@ export async function sendTransferOTPEmail(
   otp: string,
   expiryMinutes: number = 10
 ) {
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `Transfer Authorization Code: ${otp} — ${APP_NAME}`,
@@ -281,7 +292,7 @@ export async function send2FAStatusEmail(
   firstName: string,
   enabled: boolean
 ) {
-  await resend.emails.send({
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
     subject: `Two-Factor Authentication ${enabled ? 'Enabled' : 'Disabled'} — ${APP_NAME}`,
@@ -315,11 +326,16 @@ export async function send2FAStatusEmail(
   });
 }
 
-export async function sendEmailConfirmationEmail(email: string, firstName: string, confirmLink: string) {
-  await resend.emails.send({
+export async function sendEmailConfirmationEmail(
+  email: string,
+  firstName: string,
+  otp: string,
+  expiryMinutes: number = 10
+) {
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
-    subject: `Confirm your ${APP_NAME} account`,
+    subject: `Confirm your ${APP_NAME} account: ${otp}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #0066cc, #004499); padding: 40px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -335,34 +351,40 @@ export async function sendEmailConfirmationEmail(email: string, firstName: strin
             <p style="color: #6b7280; margin: 0;">Hi ${firstName}, one last step to activate your account.</p>
           </div>
           <p style="color: #6b7280; line-height: 1.6;">
-            Click the button below to verify your email address. This link expires in 24 hours.
+            Enter the code below to verify your email address.
           </p>
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${confirmLink}"
-               style="display: inline-block; background: #0066cc; color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px;">
-              Confirm Email Address
-            </a>
+
+          <div style="background: #f0f7ff; border: 2px dashed #0066cc; border-radius: 12px; padding: 32px; text-align: center; margin: 24px 0;">
+            <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Verification Code</p>
+            <div style="font-size: 48px; font-weight: 900; letter-spacing: 12px; color: #0066cc; font-family: 'Courier New', monospace;">
+              ${otp}
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin: 12px 0 0 0;">
+              ⏱ Expires in ${expiryMinutes} minutes
+            </p>
           </div>
+
           <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin: 24px 0;">
             <p style="margin: 0; color: #92400e; font-size: 13px;">
               🔒 If you didn't create a ${APP_NAME} account, you can safely ignore this email.
             </p>
           </div>
-          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-            Or copy this link into your browser:<br/>
-            <a href="${confirmLink}" style="color: #0066cc; word-break: break-all;">${confirmLink}</a>
-          </p>
         </div>
       </div>
     `,
   });
 }
 
-export async function sendPasswordResetEmail(email: string, resetLink: string) {
-  await resend.emails.send({
+export async function sendPasswordResetEmail(
+  email: string,
+  firstName: string,
+  otp: string,
+  expiryMinutes: number = 10
+) {
+  await sendEmail({
     from: FROM_EMAIL,
     to: email,
-    subject: `Reset Your Password - ${APP_NAME}`,
+    subject: `Your password reset code: ${otp} — ${APP_NAME}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #0066cc, #004499); padding: 40px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -370,15 +392,23 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
         </div>
         <div style="background: white; padding: 40px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
           <h2 style="color: #111827; margin-top: 0;">Reset Your Password 🔐</h2>
-          <p style="color: #6b7280;">You requested a password reset. Click the button below to set a new password.</p>
-          <p style="color: #9ca3af; font-size: 14px;">This link expires in 1 hour.</p>
-          <a href="${resetLink}"
-             style="display: inline-block; background: #0066cc; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0;">
-            Reset Password
-          </a>
-          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-            If you didn't request this, you can safely ignore this email.
-          </p>
+          <p style="color: #6b7280;">Hi ${firstName}, use the code below to set a new password.</p>
+
+          <div style="background: #f0f7ff; border: 2px dashed #0066cc; border-radius: 12px; padding: 32px; text-align: center; margin: 24px 0;">
+            <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Reset Code</p>
+            <div style="font-size: 48px; font-weight: 900; letter-spacing: 12px; color: #0066cc; font-family: 'Courier New', monospace;">
+              ${otp}
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin: 12px 0 0 0;">
+              ⏱ Expires in ${expiryMinutes} minutes
+            </p>
+          </div>
+
+          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0;">
+            <p style="margin: 0; color: #92400e; font-size: 13px;">
+              🔒 If you didn't request this, you can safely ignore this email — your password won't change.
+            </p>
+          </div>
         </div>
       </div>
     `,

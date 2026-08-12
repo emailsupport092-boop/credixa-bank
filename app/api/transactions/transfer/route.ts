@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { sendTransactionEmail } from '@/lib/email/send';
 
 function generateReference(): string {
@@ -46,6 +46,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
   }
 
+  // Re-resolve the beneficiary server-side — never trust the client's name/bank
+  // fields for money that's about to move. If the account number belongs to a
+  // real Credixa customer, this is an internal transfer: credited automatically
+  // on completion (see the admin PATCH handler), using our own records.
+  const admin = createAdminClient();
+  const normalizedAccountNumber = String(beneficiaryAccountNumber).replace(/\s+/g, '');
+  const { data: internalAccount } = await admin
+    .from('accounts')
+    .select('id, user_id, currency, users:user_id(first_name, last_name)')
+    .eq('account_number', normalizedAccountNumber)
+    .eq('status', 'active')
+    .single();
+
+  const owner = internalAccount
+    ? (Array.isArray(internalAccount.users) ? internalAccount.users[0] : internalAccount.users)
+    : null;
+
+  if (internalAccount && owner && internalAccount.user_id === user.id) {
+    return NextResponse.json({ error: 'You cannot transfer to your own account' }, { status: 400 });
+  }
+
+  const isInternal = Boolean(internalAccount && owner);
+
   const reference = generateReference();
 
   // Create transaction as pending — admin will approve/reject
@@ -54,16 +77,18 @@ export async function POST(request: NextRequest) {
     .insert({
       from_account_id: fromAccountId,
       from_user_id: user.id,
+      to_account_id: isInternal ? internalAccount!.id : null,
+      to_user_id: isInternal ? internalAccount!.user_id : null,
       amount,
       type: 'transfer',
       status: 'pending',
       description: purpose,
       reference,
-      beneficiary_name: beneficiaryName,
-      bank_name: bankName,
-      bank_address: bankAddress,
-      swift_code: swiftCode || null,
-      routing_number: routingNumber,
+      beneficiary_name: isInternal ? `${owner!.first_name} ${owner!.last_name}` : beneficiaryName,
+      bank_name: isInternal ? 'Credixa Bank' : bankName,
+      bank_address: isInternal ? 'Credixa Bank — Internal Transfer' : bankAddress,
+      swift_code: isInternal ? null : swiftCode || null,
+      routing_number: isInternal ? 'INTERNAL' : routingNumber,
       purpose,
     })
     .select()
@@ -102,9 +127,9 @@ export async function POST(request: NextRequest) {
     {
       transactionId: transaction.id,
       reference,
-      beneficiaryName,
-      bankName,
-      beneficiaryAccountNumber,
+      beneficiaryName: transaction.beneficiary_name,
+      bankName: transaction.bank_name,
+      beneficiaryAccountNumber: normalizedAccountNumber,
       amount,
     },
     { status: 201 }

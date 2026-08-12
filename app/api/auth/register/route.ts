@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { sendWelcomeEmail, sendEmailConfirmationEmail } from '@/lib/email/send';
 import { registerSchema } from '@/lib/validators/auth';
+import { generateOTP, hashOTP, getOTPExpiry, OTP_EXPIRY_MINUTES } from '@/lib/otp/generate';
 
 function generateAccountNumber(): string {
-  return 'CB' + Math.random().toString().slice(2, 12).padStart(10, '0');
+  let number = '';
+  for (let i = 0; i < 10; i++) {
+    number += Math.floor(Math.random() * 10).toString();
+  }
+  return number;
 }
 
 export async function POST(request: NextRequest) {
@@ -19,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, first_name, last_name } = parsed.data;
+    const { email, password, first_name, last_name, phone, date_of_birth, nationality, address } = parsed.data;
     const supabase = createAdminClient();
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -40,6 +45,10 @@ export async function POST(request: NextRequest) {
       email,
       first_name,
       last_name,
+      phone,
+      date_of_birth,
+      nationality,
+      address,
       kyc_status: 'pending',
       role: 'user',
       status: 'active',
@@ -50,36 +59,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    const { error: accountError } = await supabase.from('accounts').insert({
-      user_id: userId,
-      account_number: generateAccountNumber(),
-      account_type: 'savings',
-      currency: 'USD',
-      balance: 0,
-      status: 'active',
-    });
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .insert({
+        user_id: userId,
+        account_number: generateAccountNumber(),
+        account_type: 'savings',
+        currency: 'USD',
+        balance: 0,
+        status: 'active',
+      })
+      .select()
+      .single();
 
     if (accountError) {
-      console.error('Account creation error:', accountError);
+      await supabase.from('users').delete().eq('id', userId);
+      await supabase.auth.admin.deleteUser(userId);
+      return NextResponse.json({ error: 'Failed to open account. Please try again.' }, { status: 500 });
     }
 
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const { data: linkData } = await supabase.auth.admin.generateLink({
-        type: 'signup',
-        email,
-        password,
-        options: { redirectTo: `${appUrl}/auth/callback` },
+      const otp = generateOTP();
+      const codeHash = hashOTP(otp, userId);
+      await supabase.from('otp_codes').insert({
+        user_id: userId,
+        code_hash: codeHash,
+        expires_at: getOTPExpiry().toISOString(),
+        attempts: 0,
+        used: false,
       });
-      const confirmLink = linkData?.properties?.action_link;
-      if (confirmLink) {
-        await sendEmailConfirmationEmail(email, first_name, confirmLink);
-      }
+      await sendEmailConfirmationEmail(email, first_name, otp, OTP_EXPIRY_MINUTES);
     } catch (emailErr) {
       console.error('Confirmation email failed:', emailErr);
     }
 
-    return NextResponse.json({ message: 'Account created successfully', userId }, { status: 201 });
+    return NextResponse.json(
+      { message: 'Account created successfully', userId, accountNumber: account.account_number },
+      { status: 201 }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

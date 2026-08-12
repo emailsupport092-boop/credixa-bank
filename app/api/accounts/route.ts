@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 function generateAccountNumber(): string {
-  return 'CB' + Math.random().toString().slice(2, 12).padStart(10, '0');
+  let number = '';
+  for (let i = 0; i < 10; i++) {
+    number += Math.floor(Math.random() * 10).toString();
+  }
+  return number;
 }
 
 export async function GET() {

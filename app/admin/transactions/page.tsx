@@ -35,6 +35,7 @@ export default function AdminTransactionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   async function fetchTransactions(q = search, s = statusFilter) {
     setLoading(true);
@@ -53,15 +54,18 @@ export default function AdminTransactionsPage() {
   function openEdit(tx: Transaction) {
     setEditingId(tx.id);
     setEditStatus(tx.status);
+    setSaveError('');
   }
 
   function closeEdit() {
     setEditingId(null);
     setEditStatus('');
+    setSaveError('');
   }
 
   async function handleSave(id: string) {
     setSaving(true);
+    setSaveError('');
     const res = await fetch('/api/admin/transactions', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -70,6 +74,9 @@ export default function AdminTransactionsPage() {
     if (res.ok) {
       closeEdit();
       fetchTransactions();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setSaveError(data.error || 'Failed to update transaction');
     }
     setSaving(false);
   }
@@ -182,6 +189,9 @@ export default function AdminTransactionsPage() {
                     {editingId === tx.id && (
                       <tr className="bg-blue-50/60 dark:bg-blue-950/20">
                         <td colSpan={8} className="px-5 py-4">
+                          {saveError && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mb-3">{saveError}</p>
+                          )}
                           <div className="flex items-end gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
