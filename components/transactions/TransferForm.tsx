@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { Account } from '@/types';
 import { bankTransferSchema, BankTransferFormData } from '@/lib/validators/auth';
 import {
@@ -13,6 +14,7 @@ import {
   Search,
   Lock,
   Printer,
+  Receipt,
   ArrowLeft,
   ShieldCheck,
   Clock,
@@ -354,7 +356,7 @@ export default function TransferForm({ accounts }: Props) {
   if (step === 'success' && result) {
     return (
       <div className="max-w-lg mx-auto">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm overflow-hidden" id="receipt">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm overflow-hidden print-area" id="receipt">
           <div className="bg-linear-to-br from-emerald-500 to-emerald-600 p-8 text-center">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <CheckCircle size={36} className="text-white" />
@@ -383,20 +385,29 @@ export default function TransferForm({ accounts }: Props) {
             />
           </div>
 
-          <div className="p-6 pt-2 flex gap-3">
-            <button
-              onClick={() => window.print()}
-              className="flex-1 flex items-center justify-center gap-2 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-semibold py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+          <div className="p-6 pt-2 space-y-3 no-print">
+            <Link
+              href={`/transactions/${result.transactionId}`}
+              className="flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004499] text-white font-semibold py-2.5 rounded-xl transition-colors"
             >
-              <Printer size={16} />
-              Print Receipt
-            </button>
-            <button
-              onClick={handleReset}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004499] text-white font-semibold py-2.5 rounded-xl transition-colors"
-            >
-              New Transfer
-            </button>
+              <Receipt size={16} />
+              View Receipt
+            </Link>
+            <div className="flex gap-3">
+              <button
+                onClick={() => window.print()}
+                className="flex-1 flex items-center justify-center gap-2 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-semibold py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Printer size={16} />
+                Print
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 flex items-center justify-center gap-2 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-semibold py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                New Transfer
+              </button>
+            </div>
           </div>
         </div>
       </div>

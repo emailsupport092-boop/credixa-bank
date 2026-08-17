@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Account } from '@/types';
-import { PlusCircle, CreditCard, TrendingUp, Wallet, Copy, Check } from 'lucide-react';
+import { PlusCircle, CreditCard, TrendingUp, Wallet, Copy, Check, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const typeIcons: Record<string, any> = {
@@ -154,6 +155,14 @@ export default function AccountsPage() {
                     </button>
                   </div>
                 </div>
+
+                <Link
+                  href={`/accounts/${account.id}/statement`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg transition-colors"
+                >
+                  <FileText size={12} /> View Statement
+                </Link>
               </div>
             </motion.div>
           );

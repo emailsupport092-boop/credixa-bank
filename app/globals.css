@@ -128,3 +128,29 @@ input[type='range']::-moz-range-thumb {
 .dark ::-webkit-scrollbar-thumb {
   background: #1e2d45;
 }
+
+/* ── Print isolation ──
+   Any printable card (receipt, statement) is wrapped in .print-area.
+   window.print() otherwise prints the whole page — sidebar, nav, buttons
+   included — so on print, hide everything except that one element. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

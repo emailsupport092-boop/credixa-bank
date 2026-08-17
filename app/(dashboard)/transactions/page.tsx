@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Transaction } from '@/types';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CheckCircle, Clock, XCircle, ArrowUpRight, ArrowDownLeft, Search, Filter } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, ArrowUpRight, ArrowDownLeft, Search, Filter, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
@@ -135,7 +136,7 @@ export default function TransactionsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-900/50">
-                  {['Date & Time', 'Description', 'Category', 'Amount', 'Status'].map((h) => (
+                  {['Date & Time', 'Description', 'Category', 'Amount', 'Status', ''].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-500 uppercase tracking-wider">
                       {h}
                     </th>
@@ -177,6 +178,14 @@ export default function TransactionsPage() {
                           {tx.status === 'completed' ? <CheckCircle size={10} /> : tx.status === 'pending' ? <Clock size={10} /> : <XCircle size={10} />}
                           {tx.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <Link
+                          href={`/transactions/${tx.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc] dark:text-blue-400 hover:underline"
+                        >
+                          <Receipt size={12} /> Receipt
+                        </Link>
                       </td>
                     </tr>
                   );

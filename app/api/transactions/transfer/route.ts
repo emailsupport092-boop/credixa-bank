@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       description: purpose,
       reference,
+      beneficiary_account_number: normalizedAccountNumber,
       beneficiary_name: isInternal ? `${owner!.first_name} ${owner!.last_name}` : beneficiaryName,
       bank_name: isInternal ? 'Credixa Bank' : bankName,
       bank_address: isInternal ? 'Credixa Bank — Internal Transfer' : bankAddress,
